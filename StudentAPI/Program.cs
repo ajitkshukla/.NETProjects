@@ -1,3 +1,5 @@
+using Hangfire;
+using HangfireBasicAuthenticationFilter;
 using Microsoft.EntityFrameworkCore;
 using StudentAPI.Model.Context;
 namespace StudentAPI
@@ -18,6 +20,17 @@ namespace StudentAPI
             builder.Services.AddDbContext<StudentAPIDbContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection")));
 
+            //adding hangfire dependencies
+            builder.Services.AddHangfire((sp, config) =>
+            {
+                var connectionString = sp.GetRequiredService<IConfiguration>().GetConnectionString("SqlServerConnection");
+                config.UseSqlServerStorage(connectionString);
+            });
+            builder.Services.AddHangfireServer();
+
+            
+            
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -28,7 +41,21 @@ namespace StudentAPI
             }
 
             app.UseHttpsRedirection();
-
+            // configuration for Hangifire Dashboard
+            app.UseHangfireDashboard("/hangfire/dashboard", new DashboardOptions
+            {
+                DashboardTitle = "Hangfire Dashboard",
+                DarkModeEnabled = false,
+                DisplayStorageConnectionString = false,
+                Authorization = new[]
+                {
+                    new HangfireCustomBasicAuthenticationFilter
+                    {
+                        User = "admin",
+                        Pass = "admin123"
+                    }
+                }
+            });
             app.UseAuthorization();
 
 
